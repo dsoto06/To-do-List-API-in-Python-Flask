@@ -8,7 +8,7 @@ from flask_swagger import swagger
 from flask_cors import CORS
 from utils import APIException, generate_sitemap
 from admin import setup_admin
-from models import db, User, To_do
+from models import db, To_do
 #from models import Person
 
 app = Flask(__name__)
@@ -30,55 +30,33 @@ def handle_invalid_usage(error):
 def sitemap():
     return generate_sitemap(app)
 
+@app.route('/get_to_do', methods=['GET'])
+def get_task_to_do():
 
-@app.route('/get_fav', methods=['GET'])
-def get_fav():
+    get_task = To_do.query.all()
+    all_tasks = list(map(lambda x: x.serialize(), get_task))
+    return jsonify(all_tasks), 200
 
-    # get all the people
-    query = Favorites.query.all()
-
-    # map the results and your list of people  inside of the all_people variable
-    all_favs = list(map(lambda x: x.serialize(), query))
-
-    return jsonify(all_favs), 200
-
-@app.route('/add_fav', methods=['POST'])
-def add_fav():
+@app.route('/post_to_do', methods=['POST'])
+def post_to_do():
 
     request_body = request.get_json()
-    fav = Favorites(name=request_body["name"])
-    db.session.add(fav)
+    post_task = To_do(label=request_body["label"], done=request_body["done"])
+    db.session.add(post_task)
     db.session.commit()
 
-    return jsonify("Favorito agregado de forma correcta."), 200
+    return jsonify("New To Do added!"), 200
 
-@app.route('/upd_fav/<int:fid>', methods=['PUT'])
-def upd_fav(fid):
-
-    fav = Favorites.query.get(fid)
-    if fav is None:
-        raise APIException('Favorite not found', status_code=404)
-
-    request_body = request.get_json()
-
-    if "name" in request_body:
-        fav.name = request_body["name"]
-
+@app.route('/del_to_do/<int:fid>', methods=['DELETE'])
+def del_to_do(fid):
+    
+    task = To_do.query.filter_by(id = numb).first()
+    if task is None:
+        raise APIException('Not found', status_code=405)
+    db.session.delete(task)
     db.session.commit()
-    return jsonify("Favorito modificado de forma correcta."), 200
-
-@app.route('/del_fav/<int:fid>', methods=['DELETE'])
-def del_fav(fid):
-
-    fav = Favorites.query.get(fid)
-
-    if fav is None:
-        raise APIException('Favorite not found', status_code=404)
-    db.session.delete(fav)
-    db.session.commit()
-
-    return jsonify("Favorito eliminado de forma correcta."), 200
-
+    return jsonify({"Task deleted": numb}), 200
+    
 
 # this only runs if `$ python src/main.py` is executed
 if __name__ == '__main__':
